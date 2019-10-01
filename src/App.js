@@ -1,224 +1,38 @@
 import React from 'react';
 import './App.css';
+import Board from './Board';
 
 const MaxHeight = 20;
 const MaxWidth = 20;
-var value = -1;
-var backupvalue = -1;
-function Square(props) {
-  return (
-    <button className="square" onClick={props.onClick} id={props.id} style={{ background: props.background }}>
-      {props.value}
-    </button>
-  );
-}
-
-class Board extends React.Component {
-
-  renderSquare(i) {
-    return (
-      <Square
-        value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
-        id={"s" + i}
-        background={this.props.colors[i]}
-      />
-    );
-  }
-
-  render() {
-    let board = [];
-    for (let i = 0; i < 20; i++) {
-      let rowBoard = [];
-      for (let j = 0; j < 20; j++) {
-        rowBoard.push(this.renderSquare(i * 20 + j))
-      }
-      board.push(<div className="board-row">
-        {rowBoard}
-      </div>)
-    }
-
-    return (
-      <div>
-        {board}
-      </div>
-    );
-  }
-}
-
+let value = -1;
+let backupvalue = -1;
+let colorsArray = Array(400).fill('#dbbc8c');
 
 class Game extends React.Component {
-
   constructor(props) {
     super(props);
     this.state = {
-      history: [{
-        squares: Array(400).fill(null),
-        position: -1,
-      }],
+      history: [
+        {
+          squares: Array(400).fill(null),
+          position: -1
+        }
+      ],
       xIsNext: true,
       stepNumber: 0,
-      colors: Array(400).fill('#f5d5ae'),
-      isEnded: false,
       isIncrease: true,
     };
   }
 
-  calculateWinner(squares) {
-
-    if (value === -1) {
-      return null;
-    }
-
-    var row = Math.floor(value / 20);
-    var column = value % 20;
-
-    var thisValue = squares[row * 20 + column];
-    var winLine;
-    // Kiểm tra hàng dọc chứa điểm vừa đánh
-    for (var index = row - 4; index <= row; index++) {
-
-      winLine = Array(5).fill(null)
-      // Nếu ô row + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
-      if (index < 0) {
-        continue;
-      }
-
-      // Trường hợp đủ 5 con trong bàn cờ
-      var isWon = true;
-
-      for (var i = index; i < index + 5; i++) {
-        winLine[i - index] = i * MaxWidth + column;
-        if (i > MaxHeight - 1) {
-          isWon = false;
-          break;
-        }
-
-        if (squares[i * MaxWidth + column] !== thisValue) {
-          isWon = false;
-          break;
-        }
-      }
-
-      if (isWon === true && !this.isBlock2Ends(squares, "vertical", thisValue === 'X' ? 'O' : 'X')) {
-        this.paintWinLine(winLine);
-        return thisValue;
-      }
-    }
-
-    // // Kiểm tra hàng ngang chứa điểm vừa đánh
-    for (index = column - 4; index <= column; index++) {
-      winLine = Array(5).fill(null);
-
-      // Nếu ô column + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
-      if (index < 0) {
-        continue;
-      }
-
-      // Trường hợp đủ 5 con trong bàn cờ
-      isWon = true;
-      for (i = index; i < index + 5; i++) {
-        winLine[i - index] = row * MaxWidth + i;
-        if (i > MaxWidth - 1) {
-          isWon = false;
-          break;
-        }
-
-        if (squares[row * MaxWidth + i] !== thisValue) {
-          isWon = false;
-          break;
-        }
-      }
-
-      if (isWon === true && !this.isBlock2Ends(squares, "horizontal", thisValue === 'X' ? 'O' : 'X')) {
-        this.paintWinLine(winLine);
-        return thisValue;
-      }
-    }
-
-    // // Kiểm tra hàng chéo từ trái qua, trên xuống chứa điểm vừa đánh
-    for (index = - 4; index <= 0; index++) {
-      winLine = Array(5).fill(null);
-
-      // Nếu ô column + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
-      if (index + column < 0 || index + row < 0) {
-        continue;
-      }
-
-      // Trường hợp đủ 5 con trong bàn cờ
-      isWon = true;
-      for (i = index; i < index + 5; i++) {
-        winLine[i - index] = (row + i) * MaxWidth + (column + i);
-        if (i + column > MaxWidth - 1 || i + row > MaxHeight - 1) {
-          isWon = false;
-          break;
-        }
-
-        if (squares[(row + i) * MaxWidth + (column + i)] !== thisValue) {
-          isWon = false;
-          break;
-        }
-      }
-
-      if (isWon === true && !this.isBlock2Ends(squares, "backslash", thisValue === 'X' ? 'O' : 'X')) {
-        this.paintWinLine(winLine);
-        return thisValue;
-      }
-
-    }
-
-    // // Kiểm tra hàng chéo từ trái qua, dưới lên chứa điểm vừa đánh
-    for (index = - 4; index <= 0; index++) {
-      winLine = Array(5).fill(null)
-
-      // Nếu ô column + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
-      if (index + column < 0 || row - index > MaxHeight - 1) {
-        continue;
-      }
-
-      // Trường hợp đủ 5 con trong bàn cờ
-      isWon = true;
-      for (i = index; i < index + 5; i++) {
-        winLine[i - index] = (row - i) * MaxWidth + (column + i);
-        if (i + column > MaxWidth - 1 || row - i < 0) {
-          isWon = false;
-          break;
-        }
-
-        if (squares[(row - i) * MaxWidth + (column + i)] !== thisValue) {
-          isWon = false;
-          break;
-        }
-      }
-
-      if (isWon === true && !this.isBlock2Ends(squares, "slash", thisValue === 'X' ? 'O' : 'X')) {
-        this.paintWinLine(winLine)
-        return thisValue;
-      }
-
-    }
-
-    return null;
-  }
-
-  paintWinLine(winLine) {
-    for (let count = 0; count < 5; count++) {
-      this.state.colors[winLine[count]] = '#37d422';
-    }
-
-    winLine = [];
-  }
-
-  isBlock2Ends(squares, type, competitor) {
-    var row = Math.floor(value / 20);
-    var column = value % 20;
-    var hasCompetitor = false;
+  isBlock2Ends = (squares, type, competitor) => {
+    const row = Math.floor(value / 20);
+    const column = value % 20;
+    let hasCompetitor = false;
 
     switch (type) {
-
       // Chặn 2 đầu ngang
       case 'horizontal':
-        for (var i = column - 1; i >= 0; i--) {
+        for (let i = column - 1; i >= 0; i -= 1) {
           if (squares[row * MaxWidth + i] === competitor) {
             hasCompetitor = true;
             break;
@@ -226,7 +40,7 @@ class Game extends React.Component {
         }
 
         if (hasCompetitor) {
-          for (i = column + 1; i < MaxWidth; i++) {
+          for (let i = column + 1; i < MaxWidth; i += 1) {
             if (squares[row * MaxWidth + i] === competitor) {
               return true;
             }
@@ -238,8 +52,8 @@ class Game extends React.Component {
         break;
 
       // Chặn 2 đầu dọc
-      case "vertical":
-        for (i = row - 1; i >= 0; i--) {
+      case 'vertical':
+        for (let i = row - 1; i >= 0; i -= 1) {
           if (squares[i * MaxWidth + column] === competitor) {
             hasCompetitor = true;
             break;
@@ -247,7 +61,7 @@ class Game extends React.Component {
         }
 
         if (hasCompetitor) {
-          for (i = row + 1; i < MaxHeight; i++) {
+          for (let i = row + 1; i < MaxHeight; i += 1) {
             if (squares[i * MaxWidth + column] === competitor) {
               return true;
             }
@@ -259,9 +73,8 @@ class Game extends React.Component {
         break;
 
       // Chặn 2 đầu chéo "/"
-      case "slash":
-
-        for (i = 1; row + i < MaxHeight - 1 && column - i >= 0; i++) {
+      case 'slash':
+        for (let i = 1; row + i < MaxHeight - 1 && column - i >= 0; i += 1) {
           if (squares[(row + i) * MaxWidth + column - i] === competitor) {
             hasCompetitor = true;
             break;
@@ -269,7 +82,7 @@ class Game extends React.Component {
         }
 
         if (hasCompetitor) {
-          for (i = 1; row - i >= 0 && column + i < MaxWidth; i++) {
+          for (let i = 1; row - i >= 0 && column + i < MaxWidth; i += 1) {
             if (squares[(row - i) * MaxWidth + column + i] === competitor) {
               return true;
             }
@@ -280,8 +93,8 @@ class Game extends React.Component {
         break;
 
       // Chặn 2 đầu chéo "\"
-      case "backslash":
-        for (i = 1; row - i >= 0 && column - i >= 0; i++) {
+      case 'backslash':
+        for (let i = 1; row - i >= 0 && column - i >= 0; i += 1) {
           if (squares[(row - i) * MaxWidth + column - i] === competitor) {
             hasCompetitor = true;
             break;
@@ -289,7 +102,11 @@ class Game extends React.Component {
         }
 
         if (hasCompetitor) {
-          for (i = 1; row + i < MaxHeight && column + i < MaxWidth; i++) {
+          for (
+            let i = 1;
+            row + i < MaxHeight && column + i < MaxWidth;
+            i += 1
+          ) {
             if (squares[(row + i) * MaxWidth + column + i] === competitor) {
               return true;
             }
@@ -303,100 +120,261 @@ class Game extends React.Component {
     }
 
     return false;
-  }
+  };
 
-  jumpTo(step) {
+  jumpTo = step => {
 
-    if (step !== this.state.history.length - 1) {
+    const { history } = this.state;
 
+    if (step !== history.length - 1) {
       value = -1;
+      colorsArray = Array(400).fill('#dbbc8c');
       this.setState({
         stepNumber: step,
-        xIsNext: (step % 2) === 0,
-        colors: Array(400).fill('#f5d5ae'),
+        xIsNext: step % 2 === 0,
       });
     } else {
       value = backupvalue;
       this.setState({
         stepNumber: step,
-        xIsNext: (step % 2) === 0,
+        xIsNext: step % 2 === 0
       });
     }
 
-    for (let i = 0; i < this.state.history.length; i++) {
+    for (let i = 0; i < history.length; i += 1) {
       if (i === step) {
         document.getElementById(i).style.background = '#0c4517';
-      }
-      else document.getElementById(i).style.background = '#4CAF50';
+      } else document.getElementById(i).style.background = '#4CAF50';
     }
+  };
+
+  paintWinLine = winLine => {
+    colorsArray = Array(400).fill('#dbbc8c');
+    for (let count = 0; count < 5; count += 1) {
+      colorsArray[winLine[count]] = '#2aed18';
+    }
+  };
+
+  calculateWinner(squares) {
+    if (value === -1) {
+      return null;
+    }
+
+    const row = Math.floor(value / 20);
+    const column = value % 20;
+
+    const thisValue = squares[row * 20 + column];
+    let winLine = Array(5).fill(null);
+    // Kiểm tra hàng dọc chứa điểm vừa đánh
+    for (let index = row - 4; index <= row; index += 1) {
+      winLine = Array(5).fill(null);
+      // Nếu ô row + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
+      if (index < 0) {
+        // continue;
+      }
+
+      // Trường hợp đủ 5 con trong bàn cờ
+      let isWon = true;
+
+      for (let i = index; i < index + 5; i += 1) {
+        winLine[i - index] = i * MaxWidth + column;
+        if (i > MaxHeight - 1) {
+          isWon = false;
+          break;
+        }
+
+        if (squares[i * MaxWidth + column] !== thisValue) {
+          isWon = false;
+          break;
+        }
+      }
+
+      if (
+        isWon === true &&
+        !this.isBlock2Ends(squares, 'vertical', thisValue === 'X' ? 'O' : 'X')
+      ) {
+        this.paintWinLine(winLine);
+        return thisValue;
+      }
+    }
+
+    // // Kiểm tra hàng ngang chứa điểm vừa đánh
+    for (let index = column - 4; index <= column; index += 1) {
+      winLine = Array(5).fill(null);
+
+      // Nếu ô column + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
+      if (index < 0) {
+        // continue;
+      }
+
+      // Trường hợp đủ 5 con trong bàn cờ
+      let isWon = true;
+      for (let i = index; i < index + 5; i += 1) {
+        winLine[i - index] = row * MaxWidth + i;
+        if (i > MaxWidth - 1) {
+          isWon = false;
+          break;
+        }
+
+        if (squares[row * MaxWidth + i] !== thisValue) {
+          isWon = false;
+          break;
+        }
+      }
+
+      if (
+        isWon === true &&
+        !this.isBlock2Ends(squares, 'horizontal', thisValue === 'X' ? 'O' : 'X')
+      ) {
+        this.paintWinLine(winLine);
+        return thisValue;
+      }
+    }
+
+    // // Kiểm tra hàng chéo từ trái qua, trên xuống chứa điểm vừa đánh
+    for (let index = -4; index <= 0; index += 1) {
+      winLine = Array(5).fill(null);
+
+      // Nếu ô column + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
+      if (index + column < 0 || index + row < 0) {
+        // continue;
+      }
+
+      // Trường hợp đủ 5 con trong bàn cờ
+      let isWon = true;
+      for (let i = index; i < index + 5; i += 1) {
+        winLine[i - index] = (row + i) * MaxWidth + (column + i);
+        if (i + column > MaxWidth - 1 || i + row > MaxHeight - 1) {
+          isWon = false;
+          break;
+        }
+
+        if (squares[(row + i) * MaxWidth + (column + i)] !== thisValue) {
+          isWon = false;
+          break;
+        }
+      }
+
+      if (
+        isWon === true &&
+        !this.isBlock2Ends(squares, 'backslash', thisValue === 'X' ? 'O' : 'X')
+      ) {
+        this.paintWinLine(winLine);
+        return thisValue;
+      }
+    }
+
+    // // Kiểm tra hàng chéo từ trái qua, dưới lên chứa điểm vừa đánh
+    for (let index = -4; index <= 0; index += 1) {
+      winLine = Array(5).fill(null);
+
+      // Nếu ô column + index (Ô đầu tiên của dãy 5) nằm ngoài bàn cờ
+      if (index + column < 0 || row - index > MaxHeight - 1) {
+        // continue;
+      }
+
+      // Trường hợp đủ 5 con trong bàn cờ
+      let isWon = true;
+      for (let i = index; i < index + 5; i += 1) {
+        winLine[i - index] = (row - i) * MaxWidth + (column + i);
+        if (i + column > MaxWidth - 1 || row - i < 0) {
+          isWon = false;
+          break;
+        }
+
+        if (squares[(row - i) * MaxWidth + (column + i)] !== thisValue) {
+          isWon = false;
+          break;
+        }
+      }
+
+      if (
+        isWon === true &&
+        !this.isBlock2Ends(squares, 'slash', thisValue === 'X' ? 'O' : 'X')
+      ) {
+        this.paintWinLine(winLine);
+        return thisValue;
+      }
+    }
+
+    return null;
   }
 
   handleClickReset() {
+    colorsArray = Array(400).fill('#dbbc8c');
 
-    for (let i = 0; i < this.state.history.length; i++) {
-      document.getElementById(i).style.fontWeight = '#4CAF50';
+    const { history } = this.state;
+
+    for (let i = 0; i < history.length; i += 1) {
+      document.getElementById(i).style.fontWeight = 'normal';
     }
 
     value = -1;
 
     this.setState({
-      squares: Array(400).fill(null),
       xIsNext: true,
-      history: [{
-        squares: Array(400).fill(null),
-        position: -1,
-      }],
+      history: [
+        {
+          squares: Array(400).fill(null),
+          position: -1
+        }
+      ],
       stepNumber: 0,
-      colors: Array(400).fill('#f5d5ae'),
-      isEnded: false,
     });
-
   }
 
   handleClickSort() {
+    const { isIncrease } = this.state;
+
     this.setState({
-      isIncrease: !this.state.isIncrease,
-    })
+      isIncrease: !isIncrease
+    });
   }
 
   handleClick(i) {
-    console.log('flag: handlerClick')
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
+
+    const { history, stepNumber, xIsNext } = this.state;
+
+    const histories = history.slice(0, stepNumber + 1);
+    const current = histories[histories.length - 1];
     const squares = current.squares.slice();
 
-
-
-    if (this.calculateWinner(current.squares) || squares[i]) {
+    const winner = this.calculateWinner(squares);
+    if (winner || squares[i]) {
       return;
     }
 
-    for (let i = 0; i < this.state.history.length; i++) {
-      document.getElementById(i).style.background = '#4CAF50';
+    for (let j = 0; j < histories.length; j += 1) {
+      document.getElementById(j).style.background = '#4CAF50';
     }
-    
     value = i;
     backupvalue = value;
-    squares[i] = this.state.xIsNext ? 'X' : 'O';
+    squares[i] = xIsNext ? 'X' : 'O';
 
     this.setState({
-      history: history.concat([{
-        squares: squares,
-        position: value,
-      }]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext,
+      history: histories.concat([
+        {
+          squares,
+          position: value
+        }
+      ]),
+      stepNumber: histories.length,
+      xIsNext: !xIsNext,
     });
   }
 
   render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
+    const {
+      history,
+      stepNumber,
+      isIncrease,
+      xIsNext
+    } = this.state;
+    const current = history[stepNumber];
     const winner = this.calculateWinner(current.squares);
-
     const Style = {
       margin: '5px',
-      background: '#4CAF50', /* Green */
+      background: '#4CAF50' /* Green */,
       border: 'none',
       color: 'white',
       padding: '0px',
@@ -404,58 +382,90 @@ class Game extends React.Component {
       height: '40px'
     };
 
-    var moves = [];
-    if (this.state.isIncrease) {
-      for (let i = 0; i < history.length; i++) {
-        const desc = i ?
-          'Đi lại bước ' + i + ': [' + Math.floor(history[i].position/MaxWidth) + ';' + ((history[i].position%MaxWidth)) + ']':
-          'Đi lại từ đầu';
+    const moves = [];
+    if (isIncrease) {
+      for (let i = 0; i < history.length; i += 1) {
+        const desc = i
+          ? `Đi lại bước ${i}: [${Math.floor(
+              history[i].position / MaxWidth
+            )};${history[i].position % MaxWidth}]`
+          : 'Đi lại từ đầu';
 
         moves.push(
           <li key={i}>
-            <button style={Style} onClick={() => this.jumpTo(i)} id={i}>{desc}</button>
-          </li>)
+            <button
+              type="button"
+              style={Style}
+              onClick={() => this.jumpTo(i)}
+              id={i}
+            >
+              {desc}
+            </button>
+          </li>
+        );
       }
     } else {
-      for (let i = history.length - 1; i >= 0; i--) {
-        const desc = i ?
-        'Đi lại bước ' + i + ': [' + Math.floor(history[i].position/MaxWidth) + ';' + ((history[i].position%MaxWidth)) + ']':          'Đi lại từ đầu';
+      for (let i = history.length - 1; i >= 0; i -= 1) {
+        const desc = i
+          ? `Đi lại bước ${i}: [${Math.floor(
+              history[i].position / MaxWidth
+            )};${history[i].position % MaxWidth}]`
+          : 'Đi lại từ đầu';
 
         moves.push(
           <li key={i}>
-            <button style={Style} onClick={() => this.jumpTo(i)} id={i}>{desc}</button>
-          </li>)
+            <button
+              type="button"
+              style={Style}
+              onClick={() => this.jumpTo(i)}
+              id={i}
+            >
+              {desc}
+            </button>
+          </li>
+        );
       }
     }
 
     let status;
     if (winner) {
-      status = winner + ' chiến thắng';
+      status = `${winner} chiến thắng`;
     } else {
-      status = (this.state.xIsNext ? 'X' : 'O') + ' tiếp theo';
+      status = `${xIsNext ? 'X' : 'O'} tiếp theo`;
     }
 
-    var sourceImgSort = this.state.isIncrease ? "https://imgur.com/6l1wdoQ.png" : "https://imgur.com/y0uioJc.png";
+    const sourceImgSort = isIncrease
+      ? 'https://imgur.com/6l1wdoQ.png'
+      : 'https://imgur.com/y0uioJc.png';
 
     return (
       <div className="App">
         <header className="App-header">
           <div className="game">
             <div className="status">
-              <img src={"https://i.imgur.com/n2W67wf.png"} alt="Chơi lại" onClick={() => this.handleClickReset()}></img>
+              <button type="button" onClick={() => this.handleClickReset()} style={{border: 'none', background: 'transparent'}}>
+                <img src="https://i.imgur.com/n2W67wf.png" alt="Chơi lại" />
+              </button>
             </div>
             <div className="game-board">
               <Board
                 squares={current.squares}
-                colors={this.state.colors}
-                onClick={(i) => this.handleClick(i)}
+                colors={colorsArray}
+                onClick={i => this.handleClick(i)}
               />
             </div>
 
             <div style={{ marginLeft: '15px' }} className="game-info">
               <div>{status}</div>
-              <img src={sourceImgSort} alt="Sắp xếp danh sách" style={{ width: '40px', height: '40px', float: "right" }} onClick={() => this.handleClickSort()}></img>
-              <div style={{height: '94.5vh', overflow: 'scroll'}}>
+              <button type="button" onClick={() => this.handleClickSort()} style={{border: 'none', background: 'transparent'}}>
+                <img
+                  src={sourceImgSort}
+                  alt="Sắp xếp danh sách"
+                  style={{ width: '40px', height: '40px', float: 'right' }}
+                />
+              </button>
+
+              <div style={{ height: '88vh', overflow: 'scroll' }}>
                 <ul style={{ marginTop: '0px' }}>{moves}</ul>
               </div>
             </div>
